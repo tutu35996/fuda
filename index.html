@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>富达证书编辑器</title>
+<link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/hardcore.png">
+<link rel="apple-touch-icon" href="https://img.icons8.com/fluency/48/hardcore.png">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <section class="brand-card">
+      <p class="eyebrow">Fuda Certificate Studio</p>
+      <h1>富达证书编辑器</h1>
+      <p class="brand-copy">富达模板，实时调整与导出结果。</p>
+    </section>
+
+    <section class="sidebar-card">
+      <div class="section-title-row">
+        <h2><i class="fa-solid fa-layer-group"></i> 模板列表</h2>
+        <span id="templateCount" class="template-total">40 张</span>
+      </div>
+      <div id="templateGroups" class="template-groups"></div>
+    </section>
+
+    <section class="sidebar-card">
+      <div class="section-title-row">
+        <h2><i class="fa-solid fa-image"></i> 当前模板</h2>
+      </div>
+      <p id="currentTemplateLabel" class="current-template-label">英语 01</p>
+      <p id="currentTemplateMeta" class="current-template-meta">1024 x 1536</p>
+      <p class="current-template-tip">姓名固定居中，UID 固定输出。页面更紧凑，预览缩小显示，导出保持原始大小。</p>
+    </section>
+  </aside>
+
+  <main class="workspace">
+    <section class="preview-panel">
+      <div class="panel-card preview-card">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow">Preview</p>
+            <h2>证书预览</h2>
+          </div>
+          <div class="preview-actions">
+            <button type="button" class="action-btn" id="copyBtn" title="复制图片">
+              <i class="fa-solid fa-copy"></i>
+              <span>复制图片</span>
+            </button>
+            <button type="button" class="action-btn" id="downloadBtn" title="下载 PNG">
+              <i class="fa-solid fa-download"></i>
+              <span>下载 PNG</span>
+            </button>
+          </div>
+        </div>
+        <div class="canvas-shell">
+          <div class="canvas-stage">
+            <canvas id="certificateCanvas" width="1024" height="1536"></canvas>
+
+            <div id="loadingOverlay" class="overlay loading-overlay">
+              <div class="overlay-card">
+                <div class="spinner"></div>
+                <p>正在加载模板...</p>
+              </div>
+            </div>
+
+            <div id="errorOverlay" class="overlay error-overlay hidden">
+              <div class="overlay-card">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>模板加载失败，请重试。</p>
+                <button type="button" class="action-btn inline-action" id="retryBtn">
+                  <i class="fa-solid fa-rotate-right"></i>
+                  <span>重新加载</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="controls-panel">
+      <div class="panel-card output-card">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow">Output</p>
+            <h2>输出设置</h2>
+          </div>
+        </div>
+        <p class="panel-intro">姓名和 UID 放在证书右侧，模板选择继续保留在左边，整体更紧凑。</p>
+      </div>
+
+      <div class="panel-card control-card">
+        <div class="control-header">
+          <div>
+            <h3>姓名</h3>
+            <p>The Seasons + 金色渐变 + 柔和外发光</p>
+          </div>
+        </div>
+        <div class="field-grid compact-grid">
+          <label class="field field-wide">
+            <span>姓名文本</span>
+            <input type="text" id="nameInput" placeholder="输入姓名">
+          </label>
+          <label class="field">
+            <span>字号</span>
+            <input type="number" id="nameFontSizeInput" step="1" min="1">
+          </label>
+        </div>
+      </div>
+
+      <div class="panel-card control-card">
+        <div class="control-header">
+          <div>
+            <h3>UID</h3>
+            <p>文泉驿正黑 + 金色渐变</p>
+          </div>
+        </div>
+        <div class="field-grid">
+          <label class="field field-wide">
+            <span>UID 文本</span>
+            <input type="text" id="uidInput" placeholder="输入 UID">
+          </label>
+        </div>
+      </div>
+
+      <div class="panel-card coords-card">
+        <div class="section-title-row">
+          <h2><i class="fa-solid fa-minimize"></i> 简洁信息</h2>
+        </div>
+        <div id="coordsDisplay" class="coords-grid"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
