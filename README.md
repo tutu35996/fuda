@@ -1,28 +1,3 @@
-# PICTET Certificate
+# 富达证书编辑器
 
-## Project Structure
-
-```
-PICTET-certificate/
-├── index.html
-├── assets/
-│   ├── css/
-│   ├── js/
-│   └── icons/
-├── templates/
-│   ├── english/
-│   ├── arabic/
-│   ├── armenian/
-│   ├── croatian/
-│   ├── dutch/
-│   ├── filipino/
-│   ├── french/
-│   ├── russian/
-│   ├── spanish/
-│   └── vietnamese/
-└── README.md
-```
-
-## License
-
-This project is for personal use only.
+用于富达模板的实时预览与导出。
