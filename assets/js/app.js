@@ -74,12 +74,12 @@ class FudaCertificateEditor {
       templateCount: document.getElementById("templateCount"),
       currentTemplateLabel: document.getElementById("currentTemplateLabel"),
       currentTemplateMeta: document.getElementById("currentTemplateMeta"),
-      coordsDisplay: document.getElementById("coordsDisplay"),
       loadingOverlay: document.getElementById("loadingOverlay"),
       errorOverlay: document.getElementById("errorOverlay"),
       retryBtn: document.getElementById("retryBtn"),
       downloadBtn: document.getElementById("downloadBtn"),
       copyBtn: document.getElementById("copyBtn"),
+      avatarUpload: document.getElementById("avatarUpload"),
       nameInput: document.getElementById("nameInput"),
       nameFontSizeInput: document.getElementById("nameFontSizeInput"),
       uidInput: document.getElementById("uidInput")
@@ -105,7 +105,6 @@ class FudaCertificateEditor {
     this.bindEvents();
     this.syncAllInputs();
     this.updateTemplateSummary();
-    this.updateCoordsDisplay();
     await this.loadFonts();
     this.selectTemplate(this.editorState.templateGroup, this.editorState.templateIndex);
   }
@@ -175,6 +174,13 @@ class FudaCertificateEditor {
 
     this.dom.downloadBtn.addEventListener("click", () => this.downloadCertificate());
     this.dom.copyBtn.addEventListener("click", () => this.copyCertificate());
+    this.dom.avatarUpload.addEventListener("change", (event) => {
+      const [file] = event.target.files;
+      if (file) {
+        this.loadAvatarFromFile(file);
+      }
+    });
+    document.addEventListener("paste", (event) => this.handlePaste(event));
     this.dom.nameInput.addEventListener("input", () => {
       this.editorState.name.value = this.dom.nameInput.value;
       this.draw();
@@ -283,19 +289,94 @@ class FudaCertificateEditor {
     this.syncTextInputs("uid");
   }
 
+  handlePaste(event) {
+    const items = Array.from(event.clipboardData?.items || []);
+    const imageItem = items.find((item) => item.type.startsWith("image/"));
+    if (!imageItem) {
+      return;
+    }
+
+    const file = imageItem.getAsFile();
+    if (file) {
+      this.loadAvatarFromFile(file);
+      event.preventDefault();
+    }
+  }
+
+  loadAvatarFromFile(file) {
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const avatarImage = new Image();
+      avatarImage.onload = () => {
+        this.editorState.avatar.image = avatarImage;
+        this.editorState.avatar.imageSrc = event.target.result;
+        this.draw();
+      };
+      avatarImage.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
   draw() {
     if (!this.templateImage.complete) {
-      this.updateCoordsDisplay();
       return;
     }
 
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.drawImage(this.templateImage, 0, 0, this.canvas.width, this.canvas.height);
 
+    this.drawAvatarLayer();
     this.drawTextLayer("name");
     this.drawTextLayer("uid");
+  }
 
-    this.updateCoordsDisplay();
+  drawAvatarLayer() {
+    const avatar = this.editorState.avatar;
+    if (!avatar.image) {
+      return;
+    }
+
+    const borderWidth = 3;
+    const radius = avatar.size / 2;
+    const centerX = avatar.x + radius;
+    const centerY = avatar.y + radius;
+    const gradient = this.createGradient(avatar.y, avatar.y + avatar.size);
+    const cropSize = Math.min(avatar.image.width, avatar.image.height);
+    const sourceX = (avatar.image.width - cropSize) / 2;
+    const sourceY = (avatar.image.height - cropSize) / 2;
+
+    this.ctx.save();
+    this.ctx.lineWidth = borderWidth;
+    this.ctx.strokeStyle = gradient;
+    this.ctx.shadowBlur = 24;
+    this.ctx.shadowColor = "rgba(254, 212, 145, 0.28)";
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, radius - borderWidth / 2, 0, Math.PI * 2);
+    this.ctx.closePath();
+    this.ctx.stroke();
+    this.ctx.restore();
+
+    this.ctx.save();
+    this.ctx.beginPath();
+    this.ctx.arc(centerX, centerY, Math.max(0, radius - borderWidth / 2), 0, Math.PI * 2);
+    this.ctx.closePath();
+    this.ctx.clip();
+    this.ctx.drawImage(
+      avatar.image,
+      sourceX,
+      sourceY,
+      cropSize,
+      cropSize,
+      avatar.x + borderWidth / 2,
+      avatar.y + borderWidth / 2,
+      avatar.size - borderWidth,
+      avatar.size - borderWidth
+    );
+    this.ctx.restore();
   }
 
   drawTextLayer(layerKey) {
@@ -354,31 +435,6 @@ class FudaCertificateEditor {
       gradient.addColorStop(stop.offset, stop.color);
     });
     return gradient;
-  }
-
-  updateCoordsDisplay() {
-    const name = this.editorState.name;
-    const uid = this.editorState.uid;
-    const nameStatus = name.value.trim().length > 0 ? "已输入" : "未输入";
-    const uidStatus = uid.value.trim().length > 0 ? "已输入" : "未输入";
-
-    this.dom.coordsDisplay.innerHTML = `
-      <div class="coord-item coord-item-wide">
-        <span>模板</span>
-        <strong>${this.templateMeta.label}</strong>
-        <small>${this.templateMeta.width} x ${this.templateMeta.height} · 预览缩小显示，导出保持原始大小</small>
-      </div>
-      <div class="coord-item">
-        <span>姓名</span>
-        <strong>${nameStatus}</strong>
-        <small>字号 ${Math.round(name.fontSize)} · 固定居中输出</small>
-      </div>
-      <div class="coord-item">
-        <span>UID</span>
-        <strong>${uidStatus}</strong>
-        <small>固定位置与固定字号输出</small>
-      </div>
-    `;
   }
 
   showLoading() {
