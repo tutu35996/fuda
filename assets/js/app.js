@@ -10,6 +10,12 @@ class FudaCertificateEditor {
       { key: "hungarian", label: "匈牙利语", dir: "hungarian", count: 10 },
       { key: "vietnamese", label: "越南语", dir: "vietnamese", count: 10 }
     ];
+    this.templateSelections = new Map(this.templateGroups.map((group) => [group.key, 1]));
+    this.expandedTemplateGroup = "english";
+    this.templateImageCache = new Map();
+    this.preloadedGroups = new Set();
+    this.didScheduleCoverPreload = false;
+    this.templateRequestId = 0;
 
     this.gradientStops = [
       { offset: 0, color: "#fed491" },
@@ -107,7 +113,9 @@ class FudaCertificateEditor {
     this.syncAllInputs();
     this.updateTemplateSummary();
     await this.loadFonts();
-    this.selectTemplate(this.editorState.templateGroup, this.editorState.templateIndex);
+    await this.loadCurrentTemplate();
+    this.scheduleTemplateGroupPreload(this.editorState.templateGroup, this.editorState.templateIndex);
+    this.scheduleCoverTemplatePreload(this.editorState.templateGroup);
   }
 
   async loadFonts() {
@@ -130,13 +138,17 @@ class FudaCertificateEditor {
     this.dom.templateCount.textContent = `${totalTemplates} 张`;
     this.dom.templateGroups.innerHTML = this.templateGroups
       .map((group) => {
+        const isExpanded = group.key === this.expandedTemplateGroup;
         const buttons = Array.from({ length: group.count }, (_, index) => {
           const templateIndex = index + 1;
           const label = String(templateIndex).padStart(2, "0");
+          const isActive =
+            group.key === this.editorState.templateGroup &&
+            templateIndex === this.editorState.templateIndex;
           return `
             <button
               type="button"
-              class="template-btn"
+              class="template-btn${isActive ? " active" : ""}"
               data-group="${group.key}"
               data-index="${templateIndex}"
             >${label}</button>
@@ -144,15 +156,26 @@ class FudaCertificateEditor {
         }).join("");
 
         return `
-          <section class="template-group">
-            <div class="template-group-header">
+          <section
+            class="template-group${isExpanded ? " expanded" : " collapsed"}"
+            data-group-section="${group.key}"
+          >
+            <button
+              type="button"
+              class="template-group-header"
+              data-group-toggle="${group.key}"
+              aria-expanded="${isExpanded}"
+            >
               <div class="template-group-title">
                 <i class="fa-solid fa-images"></i>
                 <span>${group.label}</span>
               </div>
-              <span class="template-group-subtitle">${group.count} 张</span>
-            </div>
-            <div class="template-grid">${buttons}</div>
+              <div class="template-group-meta">
+                <span class="template-group-subtitle">${group.count} 张</span>
+                <i class="fa-solid fa-chevron-down template-group-chevron" aria-hidden="true"></i>
+              </div>
+            </button>
+            <div class="template-grid" aria-hidden="${!isExpanded}">${buttons}</div>
           </section>
         `;
       })
@@ -161,6 +184,12 @@ class FudaCertificateEditor {
 
   bindEvents() {
     this.dom.templateGroups.addEventListener("click", (event) => {
+      const groupToggle = event.target.closest(".template-group-header");
+      if (groupToggle) {
+        this.expandTemplateGroup(groupToggle.dataset.groupToggle);
+        return;
+      }
+
       const button = event.target.closest(".template-btn");
       if (!button) {
         return;
@@ -214,14 +243,18 @@ class FudaCertificateEditor {
   }
 
   selectTemplate(groupKey, index) {
-    this.editorState.templateGroup = groupKey;
-    this.editorState.templateIndex = index;
+    const template = this.getTemplateConfig(groupKey, index);
+    this.editorState.templateGroup = template.groupKey;
+    this.editorState.templateIndex = template.index;
+    this.templateSelections.set(template.groupKey, template.index);
+    this.expandedTemplateGroup = template.groupKey;
     this.updateTemplateButtons();
+    this.updateTemplateGroupExpansion();
     this.loadCurrentTemplate();
   }
 
   updateTemplateButtons() {
-    document.querySelectorAll(".template-btn").forEach((button) => {
+    this.dom.templateGroups.querySelectorAll(".template-btn").forEach((button) => {
       const isActive =
         button.dataset.group === this.editorState.templateGroup &&
         Number(button.dataset.index) === this.editorState.templateIndex;
@@ -229,14 +262,162 @@ class FudaCertificateEditor {
     });
   }
 
-  loadCurrentTemplate() {
-    const template = this.getTemplateConfig(this.editorState.templateGroup, this.editorState.templateIndex);
-    const image = new Image();
+  updateTemplateGroupExpansion() {
+    this.dom.templateGroups.querySelectorAll(".template-group").forEach((section) => {
+      const isExpanded = section.dataset.groupSection === this.expandedTemplateGroup;
+      section.classList.toggle("expanded", isExpanded);
+      section.classList.toggle("collapsed", !isExpanded);
 
-    this.showLoading();
+      const header = section.querySelector(".template-group-header");
+      if (header) {
+        header.setAttribute("aria-expanded", String(isExpanded));
+      }
+
+      const grid = section.querySelector(".template-grid");
+      if (grid) {
+        grid.setAttribute("aria-hidden", String(!isExpanded));
+      }
+    });
+  }
+
+  expandTemplateGroup(groupKey) {
+    const group = this.templateGroups.find((item) => item.key === groupKey);
+    const nextGroupKey = group ? group.key : this.templateGroups[0].key;
+    if (nextGroupKey !== this.expandedTemplateGroup) {
+      this.expandedTemplateGroup = nextGroupKey;
+      this.updateTemplateGroupExpansion();
+    }
+
+    this.scheduleTemplateGroupPreload(nextGroupKey, this.getRememberedTemplateIndex(nextGroupKey));
+  }
+
+  getRememberedTemplateIndex(groupKey) {
+    return this.templateSelections.get(groupKey) || 1;
+  }
+
+  scheduleBackgroundTask(task, delay = 120) {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => task(), { timeout: 1200 });
+      return;
+    }
+
+    window.setTimeout(task, delay);
+  }
+
+  buildTemplatePreloadOrder(count, preferredIndex) {
+    const safeIndex = Math.min(count, Math.max(1, preferredIndex));
+    const orderedIndexes = [];
+    for (let index = safeIndex; index <= count; index += 1) {
+      orderedIndexes.push(index);
+    }
+    for (let index = 1; index < safeIndex; index += 1) {
+      orderedIndexes.push(index);
+    }
+    return orderedIndexes;
+  }
+
+  scheduleTemplateGroupPreload(groupKey, preferredIndex = 1) {
+    const group = this.templateGroups.find((item) => item.key === groupKey);
+    if (!group || this.preloadedGroups.has(group.key)) {
+      return;
+    }
+
+    this.preloadedGroups.add(group.key);
+    this.scheduleBackgroundTask(async () => {
+      const preloadOrder = this.buildTemplatePreloadOrder(group.count, preferredIndex);
+      for (const templateIndex of preloadOrder) {
+        try {
+          await this.loadTemplateImage(this.getTemplateConfig(group.key, templateIndex));
+        } catch (error) {
+          console.warn(`模板预加载失败：${group.key} ${templateIndex}`, error);
+        }
+      }
+    }, 180);
+  }
+
+  scheduleCoverTemplatePreload(currentGroupKey) {
+    if (this.didScheduleCoverPreload) {
+      return;
+    }
+
+    this.didScheduleCoverPreload = true;
+    this.scheduleBackgroundTask(async () => {
+      for (const group of this.templateGroups) {
+        if (group.key === currentGroupKey) {
+          continue;
+        }
+
+        try {
+          await this.loadTemplateImage(this.getTemplateConfig(group.key, 1));
+        } catch (error) {
+          console.warn(`首张模板预加载失败：${group.key}`, error);
+        }
+      }
+    }, 420);
+  }
+
+  loadTemplateImage(template, { highPriority = false } = {}) {
+    const cachedEntry = this.templateImageCache.get(template.src);
+    if (cachedEntry) {
+      return cachedEntry.promise;
+    }
+
+    const image = new Image();
+    const entry = {
+      image,
+      status: "loading",
+      promise: null
+    };
+
+    image.decoding = "async";
+    if (highPriority && "fetchPriority" in image) {
+      image.fetchPriority = "high";
+    }
+
+    entry.promise = new Promise((resolve, reject) => {
+      image.onload = async () => {
+        if (typeof image.decode === "function") {
+          try {
+            await image.decode();
+          } catch (error) {
+            console.warn("模板 decode 失败，继续使用已加载图片：", error);
+          }
+        }
+
+        entry.status = "loaded";
+        resolve(image);
+      };
+
+      image.onerror = (error) => {
+        this.templateImageCache.delete(template.src);
+        entry.status = "error";
+        reject(error);
+      };
+    });
+
+    image.src = template.src;
+    this.templateImageCache.set(template.src, entry);
+    return entry.promise;
+  }
+
+  async loadCurrentTemplate() {
+    const template = this.getTemplateConfig(this.editorState.templateGroup, this.editorState.templateIndex);
+    const requestId = ++this.templateRequestId;
+    const cachedEntry = this.templateImageCache.get(template.src);
+
+    if (cachedEntry?.status === "loaded") {
+      this.hideLoading();
+    } else {
+      this.showLoading();
+    }
     this.hideError();
 
-    image.onload = () => {
+    try {
+      const image = await this.loadTemplateImage(template, { highPriority: true });
+      if (requestId !== this.templateRequestId) {
+        return;
+      }
+
       this.templateImage = image;
       this.templateMeta = {
         width: image.naturalWidth,
@@ -251,14 +432,17 @@ class FudaCertificateEditor {
       this.updateTemplateSummary();
       this.hideLoading();
       this.draw();
-    };
+      this.scheduleTemplateGroupPreload(template.groupKey, template.index);
+      this.scheduleCoverTemplatePreload(template.groupKey);
+    } catch (error) {
+      if (requestId !== this.templateRequestId) {
+        return;
+      }
 
-    image.onerror = () => {
+      console.error("模板加载失败：", error);
       this.hideLoading();
       this.showError();
-    };
-
-    image.src = template.src;
+    }
   }
 
   updateTemplateSummary() {

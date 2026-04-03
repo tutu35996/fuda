@@ -34,6 +34,22 @@
   --radius-md: 16px;
   --radius-sm: 12px;
   --transition-normal: 0.28s cubic-bezier(0.22, 0.61, 0.36, 1);
+  --sidebar-width: 248px;
+  --preview-width: 520px;
+  --controls-width: 232px;
+  --layout-gap: 14px;
+  --panel-padding: 13px;
+  --copy-size: 12px;
+  --eyebrow-size: 10px;
+  --title-xl-size: 25px;
+  --title-lg-size: 16px;
+  --title-md-size: 16px;
+  --title-sm-size: 15px;
+  --label-lg-size: 18px;
+  --label-md-size: 12px;
+  --pill-size: 11px;
+  --control-height: 40px;
+  --button-height: 36px;
 }
 
 * {
@@ -63,24 +79,24 @@ input {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 18px;
-  padding: 18px;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  gap: var(--layout-gap);
+  padding: 14px;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--layout-gap);
   position: sticky;
-  top: 24px;
+  top: 18px;
   align-self: start;
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 640px) 280px;
-  gap: 14px;
+  grid-template-columns: minmax(0, var(--preview-width)) var(--controls-width);
+  gap: 12px;
   justify-content: start;
   align-items: start;
 }
@@ -89,15 +105,15 @@ input {
 .preview-panel {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .controls-panel {
-  width: 280px;
+  width: var(--controls-width);
 }
 
 .preview-panel {
-  width: min(100%, 640px);
+  width: min(100%, var(--preview-width));
 }
 
 .panel-card,
@@ -127,7 +143,7 @@ input {
 .brand-card,
 .sidebar-card,
 .panel-card {
-  padding: 16px;
+  padding: var(--panel-padding);
 }
 
 .brand-card {
@@ -138,7 +154,7 @@ input {
 
 .eyebrow {
   margin: 0 0 10px;
-  font-size: 11px;
+  font-size: var(--eyebrow-size);
   font-weight: 700;
   letter-spacing: 0.24em;
   text-transform: uppercase;
@@ -152,7 +168,7 @@ input {
 }
 
 .brand-card h1 {
-  font-size: 30px;
+  font-size: var(--title-xl-size);
   line-height: 1.08;
 }
 
@@ -161,8 +177,9 @@ input {
 .current-template-tip,
 .control-header p {
   margin: 10px 0 0;
+  font-size: var(--copy-size);
   color: var(--color-text-muted);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .section-title-row {
@@ -177,7 +194,7 @@ input {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 18px;
+  font-size: var(--title-lg-size);
 }
 
 .template-total,
@@ -185,27 +202,40 @@ input {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 32px;
-  padding: 0 12px;
+  min-height: 28px;
+  padding: 0 10px;
   border-radius: 999px;
   border: 1px solid rgba(254, 212, 145, 0.22);
   background: rgba(255, 243, 228, 0.06);
   color: var(--color-gold-2);
-  font-size: 12px;
+  font-size: var(--pill-size);
   font-weight: 700;
 }
 
 .template-groups {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .template-group {
-  padding: 12px;
+  padding: 10px;
   border-radius: var(--radius-lg);
   background: var(--color-surface-soft);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  transition:
+    border-color var(--transition-normal),
+    background-color var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.template-group.expanded {
+  border-color: rgba(254, 212, 145, 0.2);
+  background:
+    linear-gradient(180deg, rgba(254, 212, 145, 0.08), rgba(255, 248, 239, 0.04)),
+    var(--color-surface-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 232, 205, 0.04);
 }
 
 .template-group-header {
@@ -213,31 +243,83 @@ input {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.template-group-header:hover .template-group-title,
+.template-group-header:focus-visible .template-group-title {
+  color: var(--color-text-main);
+}
+
+.template-group-header:focus-visible {
+  outline: none;
+}
+
+.template-group-header:focus-visible .template-group-meta,
+.template-group-header:hover .template-group-meta {
+  color: var(--color-gold-2);
 }
 
 .template-group-title {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
 }
 
-.template-group-subtitle {
+.template-group-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--color-text-soft);
-  font-size: 12px;
+  transition: color var(--transition-normal);
+}
+
+.template-group-subtitle {
+  font-size: 11px;
+}
+
+.template-group-chevron {
+  font-size: 11px;
+  transition: transform var(--transition-normal);
+}
+
+.template-group.expanded .template-group-chevron {
+  transform: rotate(180deg);
 }
 
 .template-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 8px;
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    max-height var(--transition-normal),
+    margin-top var(--transition-normal),
+    opacity var(--transition-normal);
+}
+
+.template-group.expanded .template-grid {
+  max-height: 160px;
+  margin-top: 8px;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .template-btn {
-  min-height: 38px;
-  padding: 8px 0;
+  min-height: 34px;
+  padding: 7px 0;
   border: 1px solid transparent;
   border-radius: 14px;
   background: rgba(255, 247, 238, 0.05);
@@ -269,14 +351,14 @@ input {
 
 .current-template-label {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--label-lg-size);
   font-weight: 700;
 }
 
 .current-template-meta {
   margin: 8px 0 0;
   color: var(--color-gold-2);
-  font-size: 14px;
+  font-size: var(--label-md-size);
   font-weight: 700;
 }
 
@@ -329,7 +411,7 @@ input {
 
 .toggle-label {
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -341,28 +423,28 @@ input {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
 .control-header h3 {
-  font-size: 18px;
+  font-size: var(--title-sm-size);
 }
 
 .field-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 }
 
 .compact-grid {
-  grid-template-columns: minmax(0, 1fr) 110px;
+  grid-template-columns: minmax(0, 1fr) 96px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .field-wide {
@@ -371,7 +453,7 @@ input {
 
 .field span {
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -379,8 +461,8 @@ input[type="text"],
 input[type="number"],
 input[type="file"] {
   width: 100%;
-  min-height: 46px;
-  padding: 11px 14px;
+  min-height: var(--control-height);
+  padding: 9px 12px;
   border: 1px solid rgba(255, 243, 228, 0.12);
   border-radius: 14px;
   background: rgba(10, 7, 5, 0.68);
@@ -404,7 +486,7 @@ input[type="file"]:focus {
 input[type="file"]::file-selector-button,
 input[type="file"]::-webkit-file-upload-button {
   margin-right: 12px;
-  padding: 8px 14px;
+  padding: 7px 12px;
   border: 1px solid rgba(254, 212, 145, 0.22);
   border-radius: 999px;
   background: rgba(254, 212, 145, 0.1);
@@ -432,7 +514,7 @@ input[type="file"]::-webkit-file-upload-button {
 .preview-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 button {
@@ -446,8 +528,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
+  min-height: var(--button-height);
+  padding: 0 12px;
   border-radius: 999px;
   border: 1px solid rgba(254, 212, 145, 0.18);
   background: rgba(255, 248, 239, 0.08);
@@ -566,7 +648,7 @@ button {
 
 .coord-item {
   min-height: 64px;
-  padding: 10px 12px;
+  padding: 9px 11px;
   border-radius: var(--radius-md);
   background: rgba(255, 248, 239, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -583,18 +665,19 @@ button {
 
 .coord-item span {
   color: var(--color-text-soft);
-  font-size: 12px;
+  font-size: 11px;
   margin-bottom: 8px;
 }
 
 .coord-item strong {
   display: block;
-  font-size: 17px;
+  font-size: 15px;
   margin-bottom: 6px;
 }
 
 .coord-item small {
   color: var(--color-text-muted);
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -612,8 +695,8 @@ button {
 .canvas-stage {
   position: relative;
   width: 100%;
-  padding: 10px;
-  border-radius: 24px;
+  padding: 8px;
+  border-radius: 20px;
   background:
     radial-gradient(circle at top, rgba(254, 212, 145, 0.12), transparent 42%),
     rgba(12, 8, 5, 0.82);
@@ -625,18 +708,18 @@ canvas {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 18px;
+  border-radius: 16px;
   background: rgba(20, 12, 7, 0.9);
   touch-action: none;
 }
 
 .overlay {
   position: absolute;
-  inset: 18px;
+  inset: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 22px;
+  border-radius: 18px;
   background: rgba(11, 7, 5, 0.74);
   backdrop-filter: blur(6px);
 }
@@ -645,9 +728,9 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
-  padding: 22px 26px;
-  border-radius: 22px;
+  gap: 10px;
+  padding: 18px 22px;
+  border-radius: 18px;
   border: 1px solid rgba(254, 212, 145, 0.2);
   background: rgba(31, 18, 10, 0.92);
   text-align: center;
@@ -659,13 +742,13 @@ canvas {
 }
 
 .error-overlay .overlay-card i {
-  font-size: 30px;
+  font-size: 24px;
   color: var(--color-gold-2);
 }
 
 .spinner {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.1);
   border-top-color: var(--color-gold-2);
@@ -688,7 +771,7 @@ canvas {
 
 @media (max-width: 1500px) {
   .workspace {
-    grid-template-columns: minmax(0, 600px) 272px;
+    grid-template-columns: minmax(0, 500px) 220px;
   }
 }
 
@@ -717,14 +800,14 @@ canvas {
 
 @media (max-width: 768px) {
   .app-shell {
-    padding: 14px;
-    gap: 14px;
+    padding: 12px;
+    gap: 12px;
   }
 
   .brand-card,
   .sidebar-card,
   .panel-card {
-    padding: 16px;
+    padding: 12px;
   }
 
   .template-grid {
