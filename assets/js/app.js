@@ -7,7 +7,8 @@ class FudaCertificateEditor {
       { key: "english", label: "英语", dir: "english", count: 10 },
       { key: "portuguese", label: "葡萄牙语", dir: "portuguese", count: 10 },
       { key: "arabic", label: "阿拉伯语", dir: "arabic", count: 10 },
-      { key: "hungarian", label: "匈牙利语", dir: "hungarian", count: 10 }
+      { key: "hungarian", label: "匈牙利语", dir: "hungarian", count: 10 },
+      { key: "vietnamese", label: "越南语", dir: "vietnamese", count: 10 }
     ];
 
     this.gradientStops = [
